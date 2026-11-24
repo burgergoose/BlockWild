@@ -419,19 +419,80 @@ const sfx = (() => {
     const g = ctx.createGain(); g.gain.setValueAtTime(v * 0.25, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
     o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + dur);
   }
+  // ---- optional sound pack: files named like block.grass.break_2.ogg, picked by name, else the synth plays ----
+  const pack = { idx: null, bufs: new Map() };
+  fetch('/api/soundpack').then(r => r.json()).then(r => {
+    if (!r.files || !r.files.length) return;
+    pack.idx = new Map();
+    for (const f of r.files) { const k = f.split('/').pop().replace(/\.(ogg|mp3|wav)$/i, '').replace(/_?\d+$/, ''); if (!pack.idx.has(k)) pack.idx.set(k, []); pack.idx.get(k).push(f); }
+    console.log('sound pack:', r.files.length, 'files,', pack.idx.size, 'sounds');
+  }).catch(() => {});
+  function load(f) {
+    let b = pack.bufs.get(f);
+    if (!b) { b = fetch('/soundpack/' + f.split('/').map(encodeURIComponent).join('/')).then(r => r.arrayBuffer()).then(a => ctx.decodeAudioData(a)).catch(() => null); pack.bufs.set(f, b); }
+    return b;
+  }
+  // play the first name in keys that the pack has; returns false when none matches (so the synth plays instead)
+  function sample(keys, v, o = {}) {
+    if (!pack.idx || !ctx) return false;
+    let list = null;
+    for (const k of keys) if (k && (list = pack.idx.get(k))) break;
+    if (!list) return false;
+    if (!v) return true;
+    const f = list[(Math.random() * list.length) | 0], t0 = ctx.currentTime;
+    load(f).then(buf => {
+      if (!buf || ctx.currentTime - t0 > (o.late || 0.3)) return;
+      const s = ctx.createBufferSource(); s.buffer = buf;
+      s.playbackRate.value = o.rate || 1 + (Math.random() - 0.5) * (o.vary == null ? 0.16 : o.vary);
+      const g = ctx.createGain(); g.gain.value = v * (o.gain || 0.7);
+      s.connect(g); g.connect(ctx.destination); s.start();
+      if (o.onend) s.onended = o.onend;
+    });
+    return true;
+  }
+  const mat = id => {
+    const b = BLOCKS[id]; if (!b) return 'stone';
+    const n = b.name;
+    if (/glass|ice/.test(n)) return 'glass';
+    if (/wool|carpet|bed/.test(n)) return 'wool';
+    if (/snow/.test(n)) return 'snow';
+    if (/gravel/.test(n)) return 'gravel';
+    if (/sand(?!stone)/.test(n)) return 'sand';
+    if (/ladder/.test(n)) return 'ladder';
+    if (/lantern/.test(n)) return 'lantern';
+    if (/grass|dirt|farmland|leaves|moss|clay|mud/.test(n) || b.render === 'cross') return 'grass';
+    if (/log|planks|wood|door|chest|workbench|fence|stairs_oak|bookshelf/.test(n) || b.tool === 'axe') return 'wood';
+    if (b.tool === 'shovel') return 'gravel';
+    if (/copper/.test(n)) return 'copper';
+    if (/iron|gold|metal|steel/.test(n)) return 'metal';
+    return 'stone';
+  };
+  const ALT = { stone: ['deepslate', 'tuff_bricks', 'polished_tuff', 'calcite', 'basalt'], wood: ['cherry_wood', 'bamboo_wood', 'nether_wood'], metal: ['iron', 'netherite_block', 'copper'], copper: ['copper', 'iron'], grass: ['grass', 'moss', 'azalea'], gravel: ['gravel', 'rooted_dirt'], sand: ['sand', 'suspicious_sand'] };
+  const blockKeys = (id, act) => { const m = mat(id), ms = [m, ...(ALT[m] || [])], out = []; for (const a of act === 'break' ? ['break'] : [act, 'break']) for (const x of ms) out.push('block.' + x + '.' + a); return out; };
+  let musicAt = performance.now() + 20000, rainOn = false;
+  function ambience() {
+    if (!on || !pack.idx) return;
+    const now = performance.now();
+    if (now > musicAt) { musicAt = now + 300000 + Math.random() * 300000; const ks = [...pack.idx.keys()].filter(k => /^music\.(game|creative|overworld|menu)/.test(k)); if (ks.length) sample([ks[(Math.random() * ks.length) | 0]], 0.35, { vary: 0, late: 30, onend: () => { musicAt = Math.min(musicAt, performance.now() + 120000); } }); }
+    if (S.rain && !rainOn && pack.idx.get('weather.rain')) { rainOn = true; const loop = () => { if (!on || !S.rain) { rainOn = false; return; } sample(['weather.rain'], 0.45, { vary: 0.05, late: 5, onend: loop }); }; loop(); }
+  }
+  setInterval(ambience, 2000);
   return {
+    sample, mat,
     toggle() { if (!ctx) { ctx = new AudioContext(); nb = noiseBuf(); } on = !on; if (on) ctx.resume(); return on; },
     get on() { return on; },
-    brk(d, id) { const b = BLOCKS[id] || {}; const f = b.tool === 'pickaxe' ? 2400 : b.tool === 'axe' ? 900 : b.tool === 'shovel' ? 600 : 1500; noise(vol(d), 0.18, f, 0.8); },
-    place(d) { noise(vol(d) * 0.7, 0.1, 500, 1.2); },
-    step(d) { noise(vol(d) * 0.15, 0.06, 700, 1); },
-    hurt(d) { tone(vol(d), 420, 220, 0.18, 'square'); },
-    pop(d) { tone(vol(d) * 0.5, 600, 1300, 0.08); },
-    boom(d) { noise(vol(d * 0.4) * 2, 1.4, 120, 0.5, 'lowpass'); },
-    twang(d) { tone(vol(d) * 0.6, 900, 300, 0.15, 'triangle'); },
-    hiss(d) { noise(vol(d) * 0.6, 1.2, 4000, 0.4, 'highpass'); },
-    chime(d) { tone(vol(d) * 0.6, 880, 1320, 0.35, 'triangle'); },
-    eat(d) { noise(vol(d) * 0.5, 0.12, 1100, 2); },
+    brk(d, id) { if (sample(blockKeys(id, 'break'), vol(d))) return; const b = BLOCKS[id] || {}; const f = b.tool === 'pickaxe' ? 2400 : b.tool === 'axe' ? 900 : b.tool === 'shovel' ? 600 : 1500; noise(vol(d), 0.18, f, 0.8); },
+    place(d, id) { if (id != null && sample(blockKeys(id, 'place'), vol(d))) return; noise(vol(d) * 0.7, 0.1, 500, 1.2); },
+    step(d, id) { if (id && sample(blockKeys(id, 'step'), vol(d) * 0.35)) return; noise(vol(d) * 0.15, 0.06, 700, 1); },
+    hurt(d, type) { if (sample(['entity.' + type + '.hurt', type === 'player' ? 'entity.player.hurt' : null, 'entity.generic.hurt'], vol(d))) return; tone(vol(d), 420, 220, 0.18, 'square'); },
+    pop(d) { if (sample(['entity.item.pickup'], vol(d) * 0.6)) return; tone(vol(d) * 0.5, 600, 1300, 0.08); },
+    boom(d) { if (sample(['entity.generic.explode'], vol(d * 0.4) * 1.5)) return; noise(vol(d * 0.4) * 2, 1.4, 120, 0.5, 'lowpass'); },
+    twang(d) { if (sample(['entity.arrow.shoot'], vol(d))) return; tone(vol(d) * 0.6, 900, 300, 0.15, 'triangle'); },
+    hiss(d) { if (sample(['entity.tnt.primed', 'entity.creeper.primed'], vol(d))) return; noise(vol(d) * 0.6, 1.2, 4000, 0.4, 'highpass'); },
+    chime(d) { if (sample(['entity.player.levelup'], vol(d) * 0.6)) return; tone(vol(d) * 0.6, 880, 1320, 0.35, 'triangle'); },
+    death(d, type) { sample(['entity.' + type + '.death', 'entity.generic.death'], vol(d)); },
+    ambient(d, type) { sample(['entity.' + type + '.ambient'], vol(d) * 0.6); },
+    eat(d) { if (sample(['entity.generic.eat'], vol(d))) return; noise(vol(d) * 0.5, 0.12, 1100, 2); },
   };
 })();
 
@@ -589,10 +650,10 @@ function handleEvent(ev) {
   const d = ev.x != null ? distTo(ev.x, ev.y, ev.z) : p ? camera.position.distanceTo(p) : 99;
   switch (ev.type) {
     case 'break': crumbs(ev.x + 0.5, ev.y + 0.5, ev.z + 0.5, ev.b, 34, 3.4); clearCrack(ev.x, ev.y, ev.z); sfx.brk(d, ev.b); break;
-    case 'place': sfx.place(d); crumbs(ev.x + 0.5, ev.y + 0.1, ev.z + 0.5, ev.b, 8, 1.5, 2.4, 0.4); break;
+    case 'place': sfx.place(d, ev.b); crumbs(ev.x + 0.5, ev.y + 0.1, ev.z + 0.5, ev.b, 8, 1.5, 2.4, 0.4); break;
     case 'crack': setCrack(ev.x, ev.y, ev.z, ev.p); crumbs(ev.x + 0.5, ev.y + 0.5, ev.z + 0.5, blockAt(ev.x, ev.y, ev.z), 3, 2, 2.6, 0.5); break;
     case 'explode': explosion(ev.x, ev.y, ev.z, ev.p); for (const pl of S.players.keys()) { const q = viewPos(pl); if (q && q.distanceTo(new THREE.Vector3(ev.x, ev.y, ev.z)) < 14) bump(pl, 8); } break;
-    case 'hurt': if (p) { burst(p.x, p.y + 1, p.z, [0.8, 0.1, 0.1], 6, 2, 2, 0.4); sfx.hurt(d); } bump(ev.id, 3); { const v = views.get(ev.id); if (v) v.hurtAt = performance.now(); } break;
+    case 'hurt': if (p) { burst(p.x, p.y + 1, p.z, [0.8, 0.1, 0.1], 6, 2, 2, 0.4); const hv = views.get(ev.id); sfx.hurt(d, hv ? hv.type : 'player'); } bump(ev.id, 3); { const v = views.get(ev.id); if (v) v.hurtAt = performance.now(); } break;
     case 'shoot': sfx.twang(d); break;
     case 'pickup': sfx.pop(d); break;
     case 'eat': if (p) burst(p.x, p.y + 1.5, p.z, [0.8, 0.6, 0.4], 5, 1.5, 2, 0.4); sfx.eat(d); break;
@@ -600,7 +661,7 @@ function handleEvent(ev) {
     case 'fuse': sfx.hiss(d); break;
     case 'death': {
       const v = views.get(ev.id);
-      if (v) burst(v.pos.x, v.pos.y + 0.6, v.pos.z, [0.85, 0.85, 0.85], 20, 2, 5, 0.9, -1);
+      if (v) { burst(v.pos.x, v.pos.y + 0.6, v.pos.z, [0.85, 0.85, 0.85], 20, 2, 5, 0.9, -1); sfx.death(d, v.type); }
       if (ev.msg) bump(ev.id, 10); if (ev.by) bump(ev.by, 4);
       break;
     }
@@ -695,13 +756,15 @@ function updateViews(dt, now) {
       v.bright += ((v.brightTarget || 1) - v.bright) * Math.min(1, dt * 4);
       v.M.bright = v.bright;
       v.M.update(dt, { flags: a[7], pitch: a[6] });
+      if (v.type !== 'player' && sfx.on && (a[7] & 1) && (a[7] & 1024) && now - v.lastStep > 450) { v.lastStep = now; const sd = camera.position.distanceTo(v.pos); if (sd < 24) sfx.sample(['entity.' + v.type + '.step'], (1 - sd / 24) * 0.3); }
       if (v.type === 'player') {
         setHeld(v.M, a[9] || null, makeItemMesh);
         const s = S.summaries.get(id);
         if (s) v.M.setArmor(s.armorItems);
         v.root.visible = !((cam.mode === 'pov' || cam.mode === 'play') && cam.target === id);
-        if ((a[7] & 1) && (a[7] & 1024) && now - v.lastStep > 330) { v.lastStep = now; sfx.step(camera.position.distanceTo(v.pos)); if (R() < 0.5) { const below = blockAt(v.pos.x, v.pos.y - 0.5, v.pos.z); if (below) burst(v.pos.x, v.pos.y + 0.05, v.pos.z, tileColor(below), 2, 1, 1.5, 0.3); } }
+        if ((a[7] & 1) && (a[7] & 1024) && now - v.lastStep > 330) { v.lastStep = now; sfx.step(camera.position.distanceTo(v.pos), blockAt(v.pos.x, v.pos.y - 0.5, v.pos.z)); if (R() < 0.5) { const below = blockAt(v.pos.x, v.pos.y - 0.5, v.pos.z); if (below) burst(v.pos.x, v.pos.y + 0.05, v.pos.z, tileColor(below), 2, 1, 1.5, 0.3); } }
       }
+      if (v.type !== 'player' && R() < dt * 0.06 && sfx.on) sfx.ambient(camera.position.distanceTo(v.pos), v.type);
       if (v.type === 'glimmerfin' && R() < dt * 3) glows.spawn(v.pos.x + (R() - 0.5) * 0.4, v.pos.y + 0.2, v.pos.z + (R() - 0.5) * 0.4, 0, 0.3, 0, 0.4, 1, 0.9, 0.8, 1.5, 1, 0);
       if (v.type === 'gloomling' && R() < dt * 4) parts.spawn(v.pos.x + (R() - 0.5) * 0.6, v.pos.y + R() * 1.8, v.pos.z + (R() - 0.5) * 0.6, 0, 0.4, 0, 0.1, 0.08, 0.15, 0.7, 3, 1, -0.2);
     } else if (v.type === 'item') {

@@ -129,7 +129,24 @@ function saveReplay() {
 }
 
 // ---------- http ----------
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+// optional local sound pack: a "soundpack" folder next to server.js, or { "folder": "..." } in soundpack.local.json
+function packDir() {
+  const local = path.join(ROOT, 'soundpack');
+  if (fs.existsSync(local)) return local;
+  try { const c = JSON.parse(fs.readFileSync(path.join(ROOT, 'soundpack.local.json'), 'utf8')); if (c.folder && fs.existsSync(c.folder)) return path.resolve(c.folder); } catch (e) { /* no pack */ }
+  return null;
+}
+let packCache = null;
+function packFiles() {
+  const dir = packDir();
+  if (!dir) return [];
+  if (packCache && packCache.dir === dir) return packCache.files;
+  const files = [];
+  (function walk(d, rel) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { if (e.isDirectory()) walk(path.join(d, e.name), rel + e.name + '/'); else if (/\.(ogg|mp3|wav)$/i.test(e.name)) files.push(rel + e.name); } })(dir, '');
+  packCache = { dir, files };
+  return files;
+}
+const MIME = { '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 function respond(res, obj, code = 200) {
   if (res.writableEnded) return;
   res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -241,6 +258,8 @@ const server = http.createServer(async (req, res) => {
       req.on('close', () => streams.delete(res));
       return;
     }
+    if (p === '/api/soundpack') return respond(res, { files: packFiles() });
+    if (p.startsWith('/soundpack/')) { const dir = packDir(); const f = dir && safe(dir, decodeURIComponent(p.slice(11))); return f ? serveFile(res, f, { 'Cache-Control': 'max-age=86400' }) : (res.writeHead(404), res.end()); }
     if (p === '/api/replays') {
       const list = fs.readdirSync(REPLAYS).filter(f => f.endsWith('.json.gz')).sort().reverse();
       return respond(res, { replays: list });

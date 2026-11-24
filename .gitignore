@@ -13,3 +13,7 @@ node_modules/
 .claude/
 *.log
 dist/
+
+# your private sound pack (local only)
+soundpack/
+soundpack.local.json
