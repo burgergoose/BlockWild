@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2a4a"/>
+      <stop offset="0.55" stop-color="#3d6ea8"/>
+      <stop offset="1" stop-color="#8fc3e8"/>
+    </linearGradient>
+    <pattern id="grass" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="#5d9e34"/>
+      <rect x="0" y="0" width="6" height="6" fill="#6fb53f"/><rect x="12" y="6" width="6" height="6" fill="#4f8a2b"/>
+      <rect x="6" y="12" width="6" height="6" fill="#6fb53f"/><rect x="18" y="18" width="6" height="6" fill="#4f8a2b"/>
+    </pattern>
+    <pattern id="dirt" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="#7a5233"/>
+      <rect x="6" y="0" width="6" height="6" fill="#8d6240"/><rect x="18" y="12" width="6" height="6" fill="#664329"/>
+      <rect x="0" y="18" width="6" height="6" fill="#8d6240"/><rect x="12" y="6" width="6" height="6" fill="#664329"/>
+    </pattern>
+    <pattern id="stone" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="#7d8590"/>
+      <rect x="0" y="6" width="6" height="6" fill="#8e97a2"/><rect x="12" y="18" width="6" height="6" fill="#6a717b"/>
+      <rect x="18" y="0" width="6" height="6" fill="#6a717b"/><rect x="6" y="12" width="6" height="6" fill="#8e97a2"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="360" fill="url(#sky)"/>
+  <!-- stars -->
+  <g fill="#fff" opacity="0.8">
+    <rect x="80" y="30" width="3" height="3"/><rect x="220" y="60" width="3" height="3"/><rect x="410" y="22" width="3" height="3"/>
+    <rect x="760" y="40" width="3" height="3"/><rect x="980" y="28" width="3" height="3"/><rect x="1120" y="70" width="3" height="3"/>
+    <rect x="600" y="16" width="3" height="3"/><rect x="330" y="96" width="2" height="2"/><rect x="890" y="88" width="2" height="2"/>
+  </g>
+  <!-- blocky sun -->
+  <rect x="1020" y="70" width="72" height="72" fill="#ffe08a"/><rect x="1032" y="82" width="48" height="48" fill="#fff2bf"/>
+  <!-- clouds -->
+  <g fill="#ffffff" opacity="0.85">
+    <rect x="120" y="110" width="144" height="24"/><rect x="144" y="92" width="72" height="18"/>
+    <rect x="700" y="96" width="168" height="24"/><rect x="736" y="78" width="96" height="18"/>
+  </g>
+  <!-- far hills -->
+  <g fill="#2f5d3a" opacity="0.7">
+    <rect x="0" y="232" width="1200" height="128"/><rect x="48" y="208" width="168" height="24"/><rect x="96" y="184" width="72" height="24"/>
+    <rect x="600" y="196" width="240" height="36"/><rect x="672" y="172" width="96" height="24"/><rect x="960" y="212" width="192" height="20"/>
+  </g>
+  <!-- terrain -->
+  <rect x="0" y="264" width="1200" height="24" fill="url(#grass)"/>
+  <rect x="0" y="288" width="1200" height="36" fill="url(#dirt)"/>
+  <rect x="0" y="324" width="1200" height="36" fill="url(#stone)"/>
+  <rect x="216" y="240" width="96" height="24" fill="url(#grass)"/><rect x="888" y="240" width="72" height="24" fill="url(#grass)"/>
+  <!-- tree -->
+  <rect x="96" y="168" width="24" height="96" fill="#6b4a2b"/><rect x="102" y="168" width="6" height="96" fill="#7d5834"/>
+  <rect x="48" y="120" width="120" height="60" fill="#3f8a2a"/><rect x="72" y="96" width="72" height="24" fill="#4f9e34"/>
+  <rect x="60" y="132" width="12" height="12" fill="#5db23f"/><rect x="132" y="150" width="12" height="12" fill="#2f6e20"/>
+  <!-- tree 2 -->
+  <rect x="1104" y="192" width="24" height="72" fill="#6b4a2b"/>
+  <rect x="1068" y="144" width="96" height="54" fill="#3f8a2a"/><rect x="1092" y="126" width="48" height="18" fill="#4f9e34"/>
+  <!-- a little player -->
+  <g transform="translate(936 168)">
+    <rect x="0" y="0" width="24" height="24" fill="#e0b48a"/><rect x="0" y="0" width="24" height="6" fill="#4a2f1b"/>
+    <rect x="5" y="10" width="4" height="4" fill="#1b1b1b"/><rect x="15" y="10" width="4" height="4" fill="#1b1b1b"/>
+    <rect x="0" y="24" width="24" height="30" fill="#2e86c1"/><rect x="-10" y="24" width="10" height="26" fill="#2e86c1"/><rect x="24" y="24" width="10" height="26" fill="#2e86c1"/>
+    <rect x="0" y="54" width="11" height="18" fill="#2c3e64"/><rect x="13" y="54" width="11" height="18" fill="#2c3e64"/>
+    <rect x="30" y="8" width="6" height="40" fill="#7d5834"/><rect x="22" y="2" width="24" height="10" fill="#9aa4ae"/>
+  </g>
+  <!-- a crumbling block with crumbs -->
+  <rect x="1000" y="216" width="24" height="24" fill="url(#stone)"/>
+  <g fill="#8e97a2"><rect x="990" y="204" width="5" height="5"/><rect x="1030" y="198" width="5" height="5"/><rect x="1012" y="190" width="4" height="4"/></g>
+  <g fill="#6a717b"><rect x="1036" y="212" width="4" height="4"/><rect x="984" y="222" width="4" height="4"/></g>
+  <!-- title -->
+  <g font-family="'Courier New', monospace" font-weight="900" text-anchor="middle">
+    <text x="600" y="168" font-size="112" fill="#1d3f0b" letter-spacing="8">BLOCKWILD</text>
+    <text x="600" y="160" font-size="112" fill="#a8e06a" letter-spacing="8">BLOCKWILD</text>
+    <text x="600" y="214" font-size="24" fill="#ffffff" letter-spacing="3">a 3D voxel survival world · built for AI players · and you</text>
+  </g>
+</svg>

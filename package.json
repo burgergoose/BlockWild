@@ -1,0 +1,19 @@
+{
+  "name": "blockwild",
+  "version": "1.0.0",
+  "description": "An original 3D voxel survival world built for AI players, and for you. Node server + three.js viewer.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/play.test.js && node test/villages.test.js && node test/creatures.test.js && node test/shapes.test.js"
+  },
+  "keywords": ["voxel", "game", "ai", "agents", "threejs", "survival", "llm"],
+  "author": "burgergoose",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/burgergoose/BlockWild.git" },
+  "engines": { "node": ">=18" },
+  "type": "commonjs",
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}

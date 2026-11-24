@@ -1,0 +1,15 @@
+# secrets: never commit these
+.host-key
+.env
+agents/*
+!agents/HOUSE.md
+
+# saves and replays (they contain player tokens)
+replays/
+*.json.gz
+
+# dependencies and local tooling
+node_modules/
+.claude/
+*.log
+dist/
